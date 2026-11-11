@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Material Master ERP</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo">
+      <h1>Material Master</h1>
+      <span class="subtitle">ERP Training</span>
+    </div>
+    <div class="status-bar">
+      <span id="sync-status" class="badge">Đang khởi tạo...</span>
+      <button id="btn-sync" class="btn btn-secondary">Đồng bộ</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <button class="nav-item active" data-view="dashboard">Tổng quan</button>
+        <button class="nav-item" data-view="catalog">Danh mục vật tư</button>
+        <button class="nav-item" data-view="create">Tạo mã mới</button>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <h2>Tổng quan hệ thống</h2>
+        <div class="dashboard-cards">
+          <div class="card">
+            <h3>Tổng số mã vật tư</h3>
+            <p id="dash-total" class="big-number">0</p>
+          </div>
+          <div class="card">
+            <h3>Trạng thái Kết nối</h3>
+            <p id="dash-gas-status" class="status-text">Chưa kết nối</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- DANH MỤC VẬT TƯ -->
+      <section id="view-catalog" class="view">
+        <h2>Danh mục vật tư</h2>
+        <div class="toolbar">
+          <input type="text" id="search-input" placeholder="Tìm theo mã hoặc tên...">
+          <select id="filter-category"><option value="">Tất cả nhóm</option></select>
+        </div>
+        <div class="table-responsive">
+          <table id="material-table">
+            <thead>
+              <tr>
+                <th>Mã vật tư</th>
+                <th>Tên vật tư</th>
+                <th>Nhóm</th>
+                <th>Đơn vị</th>
+                <th>Ngày tạo</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TẠO MÃ MỚI -->
+      <section id="view-create" class="view">
+        <h2>Tạo mã vật tư mới</h2>
+        <div class="form-layout">
+          <div class="form-main">
+            <div class="form-section">
+              <h3>1. Phân loại</h3>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Nhóm vật tư *</label>
+                  <select id="select-category"><option value="">-- Chọn nhóm --</option></select>
+                </div>
+                <div class="form-group">
+                  <label>Chủng loại *</label>
+                  <select id="select-subtype" disabled><option value="">-- Chọn chủng loại --</option></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section" id="dynamic-fields-section" style="display: none;">
+              <h3>2. Thông số kỹ thuật</h3>
+              <div id="dynamic-fields" class="grid-2"></div>
+            </div>
+            
+            <div class="form-section">
+              <h3>3. Thông tin bổ sung</h3>
+              <div class="form-group">
+                <label>Loại vật tư (ERP)</label>
+                <select id="select-material-type"></select>
+              </div>
+              <div class="form-group">
+                <label>Ghi chú</label>
+                <input type="text" id="input-notes" placeholder="Tùy chọn">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-sidebar">
+            <div class="preview-box">
+              <h3>Kết quả khởi tạo</h3>
+              <div class="form-group">
+                <label>Mã hệ thống (Tự động cấp)</label>
+                <input type="text" id="preview-code" readonly placeholder="[Chưa cấp]">
+              </div>
+              <div class="form-group">
+                <label>Tên vật tư (Tự sinh)</label>
+                <textarea id="preview-name" readonly rows="3" placeholder="Vui lòng điền đủ thông số..."></textarea>
+              </div>
+              <div id="duplicate-warning" class="alert alert-warning" style="display: none;">
+                <strong>Cảnh báo:</strong> <span id="dup-message"></span>
+              </div>
+              <button id="btn-save" class="btn btn-primary w-100" disabled>Gửi yêu cầu cấp mã</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL CHI TIẾT VÀ MÃ VẠCH -->
+  <div id="detail-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>Chi tiết vật tư</h2>
+      <div id="detail-body"></div>
+      <div class="barcode-section">
+        <svg id="barcode"></svg>
+        <button id="btn-download-barcode" class="btn btn-secondary">Tải mã vạch SVG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-container"></div>
+
+  <script src="assets/js/barcode.js"></script>
+  <script src="assets/js/material-rules.js"></script>
+  <script src="assets/js/cloud-bridge.js"></script>
+  <script src="assets/js/app.js"></script>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+</body>
+</html>
